@@ -33,7 +33,7 @@ def main():
     col = next(c for c in rows[0] if c.lower().startswith("harari"))
     out, skipped = [], 0
     for r in rows:
-        har = " ".join((r.get(col) or "").split())
+        har = " ".join(re.sub(r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]", "", r.get(col) or "").split())  # drop invisible marks
         if not (r.get("ID") or "").startswith("har_"):
             continue  # skips the Example row
         if not har or (r.get("Status") or "").strip().lower() not in ok_status:
