@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harari Voice Recorder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: calm, encouraging studio helper for a volunteer reader.
+IDEA: a whitewashed Jugol wall with a green door: one sentence on a card, one big red record button.
+PICTURE: the working recorder itself, sentence large, live level meter.
+COLOUR and TYPE: whitewash ground, Harar door green, basket red accent; Noto Sans Ethiopic for the text.
+LAYOUT: one column, max 720px, controls under the thumb on phones.
+*/
+:root{color-scheme:light dark;--bg:light-dark(#f7f5ef,#0f1513);--card:light-dark(#ffffff,#18211e);--ink:light-dark(#16201c,#eef2ef);--mute:light-dark(#5b6762,#9fb0a8);--line:light-dark(#e2ded3,#2a3631);--green:light-dark(#0f5a46,#5fc3a2);--red:#c8323c;--warn:light-dark(#9a5a00,#f0b45a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+main{max-width:720px;margin:0 auto;padding:16px max(4vw,14px) 40px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding:8px 0 14px}
+h1{font-size:22px;margin:0;line-height:1.1;color:var(--green)}
+.who{color:var(--mute);font-size:14px}
+.prog{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+.prog .row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--mute)}
+.prog b{color:var(--ink)}
+.bar{height:8px;border-radius:8px;background:var(--line);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--green);width:0;transition:width .4s}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 18px 22px;box-shadow:0 1px 0 var(--line)}
+.sid{font-size:13px;color:var(--mute);display:flex;justify-content:space-between;gap:8px}
+.badge{font-weight:600;color:var(--green)}
+.sentence{font-family:"Noto Sans Ethiopic","Kefa","Abyssinica SIL","Nyala",Inter,sans-serif;font-size:clamp(26px,6vw,40px);line-height:1.45;margin:14px 0 18px;text-wrap:balance;min-height:2.9em}
+.meter{height:12px;border-radius:12px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--green);transition:width 60ms linear}
+.meter.hot i{background:var(--red)}
+.status{min-height:24px;margin-top:10px;font-size:15px;color:var(--mute)}
+.status .w{color:var(--warn);font-weight:600}
+.status .ok{color:var(--green);font-weight:600}
+.rec{display:flex;justify-content:center;margin:18px 0 10px}
+#recBtn{width:96px;height:96px;border-radius:50%;border:0;background:var(--red);color:#fff;font:600 16px Inter,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(200,50,60,.35)}
+#recBtn.on{animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 14px rgba(200,50,60,.15)}}
+@media (prefers-reduced-motion:reduce){#recBtn.on{animation:none}}
+.btns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+button.b{min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 16px Inter,sans-serif;cursor:pointer}
+button.b.primary{background:var(--green);border-color:var(--green);color:light-dark(#fff,#08130f)}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.sync{margin-top:14px;font-size:14px;color:var(--mute);text-align:center}
+details{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+summary{cursor:pointer;font-weight:600}
+details li{margin:4px 0}
+.msg{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;margin-top:20px}
+.keys{font-size:13px;color:var(--mute);margin-top:8px}
+@media(max-width:600px){.keys{display:none}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Harari Voice Recorder</h1>
+    <span class="who" id="who"></span>
+  </header>
+
+  <div id="blocked" class="msg" hidden></div>
+
+  <section id="app" hidden>
+    <div class="prog">
+      <div class="row"><span><b id="nDone">0</b> of <b id="nTotal">0</b> sentences recorded</span><span><b id="mins">0</b> of <span id="goal">0</span> min</span></div>
+      <div class="bar"><i id="barFill"></i></div>
+    </div>
+
+    <div class="card">
+      <div class="sid"><span id="sid"></span><span class="badge" id="badge"></span></div>
+      <div class="sentence" id="sentence" lang="har"></div>
+      <div class="meter" id="meter"><i id="meterFill"></i></div>
+      <div class="status" id="status">Press Record, read the sentence, then press Stop.</div>
+      <div class="rec"><button id="recBtn" aria-label="Record">Record</button></div>
+      <div class="btns">
+        <button class="b" id="playBtn" disabled>Listen</button>
+        <button class="b" id="redoBtn" disabled>Redo</button>
+        <button class="b primary" id="saveBtn" disabled>Save &amp; next</button>
+      </div>
+      <div class="nav">
+        <button class="b" id="prevBtn">← Back</button>
+        <button class="b" id="skipBtn">Skip →</button>
+      </div>
+      <div class="keys">Keyboard: Space = record/stop · L = listen · Enter = save &amp; next · ← → = move</div>
+    </div>
+
+    <div class="sync" id="sync">Connecting…</div>
+
+    <details>
+      <summary>Tips for a great recording</summary>
+      <ul>
+        <li>Quiet room, door closed, no TV, fan or AC noise. Rooms with curtains, carpet or a sofa sound best.</li>
+        <li>Keep the phone or mic the same distance from your mouth every time — about one hand-span.</li>
+        <li>Read naturally, at your normal speed, like you are explaining something to a friend.</li>
+        <li>Leave a short pause after pressing Record before you speak.</li>
+        <li>If you stumble, press Redo. Every saved take should be read exactly as written.</li>
+        <li>Short sessions are fine — 15 minutes whenever you're free. Your place is saved.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script>
+{
+const C = window.RECORDER_CONFIG || {};
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const SPK = (params.get('s') || '').trim();
+const KEY = (params.get('k') || '').trim();
+const st = { sentences: [], idx: 0, done: new Map(), queue: new Map(), take: null, recording: false, chunks: [], sr: 48000, uploading: false };
+let ctx, stream, proc, db;
+
+function block(html){ $('blocked').innerHTML = html; $('blocked').hidden = false; $('app').hidden = true; }
+
+// ---------- storage (IndexedDB queue of takes waiting to upload) ----------
+function openDB(){ return new Promise((res, rej) => { try { const r = indexedDB.open('harari-recorder', 1); r.onupgradeneeded = () => r.result.createObjectStore('queue', { keyPath: 'key' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
+function tx(mode, fn){ return new Promise((res, rej) => { if (!db) return res(null); const t = db.transaction('queue', mode); const s = t.objectStore('queue'); const r = fn(s); t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error); }); }
+const qKey = id => SPK + '/' + id;
+const lsKey = 'harari-rec-pos-' + SPK;
+function savePos(){ try { localStorage.setItem(lsKey, String(st.idx)); } catch (e) {} }
+
+// ---------- sentences ----------
+function parseSentences(txt){
+  const out = []; let n = 0;
+  for (const raw of txt.split(/\r?\n/)) {
+    const line = raw.trim(); if (!line || line.startsWith('#')) continue;
+    n++;
+    const m = line.match(/^([A-Za-z0-9_-]+)\t+(.+)$/);
+    out.push(m ? { id: m[1], text: m[2].trim() } : { id: 'har_' + String(n).padStart(4, '0'), text: line });
+  }
+  return out;
+}
+
+// ---------- server ----------
+async function fetchProgress(){
+  const u = C.APPS_SCRIPT_URL + '?s=' + encodeURIComponent(SPK) + '&k=' + encodeURIComponent(KEY);
+  const r = await fetch(u); const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'Server error');
+  for (const d of j.done) st.done.set(d.id, d.dur || 0);
+}
+function toB64(blob){ return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => rej(fr.error); fr.readAsDataURL(blob); }); }
+async function upload(item){
+  const body = JSON.stringify({ s: SPK, k: KEY, id: item.id, text: item.text, dur: item.dur, sr: item.sr, wav: await toB64(item.blob) });
+  const r = await fetch(C.APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body });
+  const j = await r.json(); if (!j.ok) throw new Error(j.error || 'Upload failed');
+}
+let retryTimer;
+async function processQueue(){
+  if (st.uploading) return; st.uploading = true; clearTimeout(retryTimer);
+  try {
+    for (const [key, item] of [...st.queue]) {
+      renderSync();
+      try { await upload(item); st.queue.delete(key); st.done.set(item.id, item.dur); await tx('readwrite', s => s.delete(key)).catch(() => {}); }
+      catch (e) { retryTimer = setTimeout(processQueue, 15000); break; }
+    }
+  } finally { st.uploading = false; render(); }
+}
+window.addEventListener('online', processQueue);
+window.addEventListener('beforeunload', e => { if (st.queue.size) { e.preventDefault(); e.returnValue = ''; } });
+
+// ---------- audio ----------
+async function ensureMic(){
+  if (stream) return;
+  stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  st.sr = ctx.sampleRate;
+  const src = ctx.createMediaStreamSource(stream);
+  proc = ctx.createScriptProcessor(4096, 1, 1);
+  proc.onaudioprocess = e => {
+    const d = e.inputBuffer.getChannelData(0); let pk = 0;
+    for (let i = 0; i < d.length; i++) { const a = Math.abs(d[i]); if (a > pk) pk = a; }
+    meter(pk);
+    if (st.recording) st.chunks.push(new Float32Array(d));
+  };
+  src.connect(proc); proc.connect(ctx.destination);
+}
+function meter(pk){
+  const db = pk > 0 ? 20 * Math.log10(pk) : -90;
+  const pct = Math.max(0, Math.min(100, (db + 60) / 60 * 100));
+  $('meterFill').style.width = pct + '%';
+  $('meter').classList.toggle('hot', pk > 0.97);
+}
+function trim(x, sr){
+  const win = Math.round(sr * 0.02), th = 0.008; let first = -1, last = -1;
+  for (let i = 0; i + win <= x.length; i += win) {
+    let s = 0; for (let j = i; j < i + win; j++) s += x[j] * x[j];
+    if (Math.sqrt(s / win) > th) { if (first < 0) first = i; last = i + win; }
+  }
+  if (first < 0) return x;
+  const pad = Math.round(sr * 0.25);
+  return x.subarray(Math.max(0, first - pad), Math.min(x.length, last + pad));
+}
+function toWav(f32, sr){
+  const n = f32.length, b = new ArrayBuffer(44 + n * 2), v = new DataView(b);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) { const s = Math.max(-1, Math.min(1, f32[i])); v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true); }
+  return new Blob([b], { type: 'audio/wav' });
+}
+
+async function startRec(){
+  try { await ensureMic(); if (ctx.state === 'suspended') await ctx.resume(); }
+  catch (e) { setStatus('<span class="w">Microphone not available. Allow microphone access for this page in your browser settings, then reload.</span>'); return; }
+  st.chunks = []; st.take = null; st.recording = true;
+  setStatus('Recording… read the sentence, then press Stop.'); render();
+}
+function stopRec(){
+  st.recording = false;
+  let len = 0; for (const c of st.chunks) len += c.length;
+  const all = new Float32Array(len); let o = 0; for (const c of st.chunks) { all.set(c, o); o += c.length; }
+  const x = trim(all, st.sr);
+  let pk = 0; for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > pk) pk = a; }
+  const dur = x.length / st.sr;
+  const warn = [];
+  if (pk >= 0.99) warn.push('Too loud (clipping) — move back a little and redo.');
+  else if (pk < 0.05) warn.push('Very quiet — move closer to the mic and redo.');
+  if (dur < 0.8) warn.push('Very short — did the whole sentence record?');
+  if (dur > 20) warn.push('Longer than 20 seconds — this one may be skipped in training.');
+  st.take = { blob: toWav(x, st.sr), dur, sr: st.sr };
+  setStatus(warn.length ? '<span class="w">' + warn.join(' ') + '</span>' : 'Got it (' + dur.toFixed(1) + ' s). Listen if you like, then Save & next.');
+  render();
+}
+let player;
+function play(){
+  const cur = st.sentences[st.idx]; const item = st.take || st.queue.get(qKey(cur.id));
+  if (!item) return;
+  try { if (player) player.pause(); player = new Audio(URL.createObjectURL(item.blob)); player.play().catch(() => {}); } catch (e) {}
+}
+async function save(){
+  if (!st.take) return;
+  const cur = st.sentences[st.idx];
+  const item = { key: qKey(cur.id), id: cur.id, text: cur.text, ...st.take };
+  st.queue.set(item.key, item);
+  await tx('readwrite', s => s.put(item)).catch(() => {});
+  st.take = null; processQueue(); go(nextUnrecorded(st.idx));
+  setStatus('<span class="ok">Saved.</span> Next sentence:');
+}
+function isDone(id){ return st.done.has(id) || st.queue.has(qKey(id)); }
+function nextUnrecorded(from){
+  const n = st.sentences.length;
+  for (let k = 1; k <= n; k++) { const i = (from + k) % n; if (!isDone(st.sentences[i].id)) return i; }
+  return Math.min(from + 1, n - 1);
+}
+function go(i){
+  if (st.recording) return;
+  st.idx = Math.max(0, Math.min(st.sentences.length - 1, i)); st.take = null; savePos();
+  setStatus(isDone(st.sentences[st.idx].id) ? 'Already recorded. You can record again to replace it, or move on.' : 'Press Record, read the sentence, then press Stop.');
+  render();
+}
+
+// ---------- render ----------
+function setStatus(h){ $('status').innerHTML = h; }
+function renderSync(){
+  const q = st.queue.size;
+  $('sync').textContent = q ? (st.uploading ? 'Uploading ' + q + ' recording' + (q > 1 ? 's' : '') + '… keep this page open.' : q + ' recording' + (q > 1 ? 's' : '') + ' waiting to upload — will retry automatically.') : 'All recordings saved to the cloud ✓';
+}
+function render(){
+  const cur = st.sentences[st.idx]; if (!cur) return;
+  const ids = new Set(st.sentences.map(s => s.id));
+  let n = 0, secs = 0;
+  for (const s of st.sentences) if (isDone(s.id)) n++;
+  for (const [id, d] of st.done) if (ids.has(id)) secs += d;
+  for (const [, it] of st.queue) if (!st.done.has(it.id)) secs += it.dur;
+  $('nDone').textContent = n; $('nTotal').textContent = st.sentences.length;
+  $('mins').textContent = (secs / 60).toFixed(1); $('goal').textContent = C.GOAL_MINUTES || 120;
+  $('barFill').style.width = Math.min(100, secs / 60 / (C.GOAL_MINUTES || 120) * 100) + '%';
+  $('sid').textContent = cur.id + ' · ' + (st.idx + 1) + ' / ' + st.sentences.length;
+  $('badge').textContent = st.queue.has(qKey(cur.id)) ? 'Uploading' : st.done.has(cur.id) ? 'Saved ✓' : '';
+  $('sentence').textContent = cur.text;
+  const rb = $('recBtn'); rb.textContent = st.recording ? 'Stop' : 'Record'; rb.classList.toggle('on', st.recording); rb.setAttribute('aria-label', rb.textContent);
+  const hasAudio = !!st.take || st.queue.has(qKey(cur.id));
+  $('playBtn').disabled = st.recording || !hasAudio;
+  $('redoBtn').disabled = st.recording || !st.take;
+  $('saveBtn').disabled = st.recording || !st.take;
+  $('prevBtn').disabled = st.recording || st.idx === 0;
+  $('skipBtn').disabled = st.recording;
+  renderSync();
+}
+
+// ---------- events ----------
+$('recBtn').onclick = () => st.recording ? stopRec() : startRec();
+$('playBtn').onclick = play;
+$('redoBtn').onclick = startRec;
+$('saveBtn').onclick = save;
+$('prevBtn').onclick = () => go(st.idx - 1);
+$('skipBtn').onclick = () => go(st.idx + 1 < st.sentences.length ? st.idx + 1 : 0);
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,textarea') || $('app').hidden) return;
+  if (e.code === 'Space') { e.preventDefault(); $('recBtn').click(); }
+  else if (e.key === 'Enter' && !$('saveBtn').disabled) { e.preventDefault(); save(); }
+  else if (e.key.toLowerCase() === 'l') play();
+  else if (e.key === 'ArrowRight') $('skipBtn').click();
+  else if (e.key === 'ArrowLeft') $('prevBtn').click();
+});
+
+// ---------- start ----------
+(async () => {
+  const name = (C.SPEAKERS || {})[SPK];
+  if (!SPK || !KEY || !name) { block('<h2>Personal link needed</h2><p>This page only works from your personal recording link. Please ask ' + (C.CONTACT_NAME || 'the project organizer') + ' to send it to you.</p>'); return; }
+  $('who').textContent = name;
+  if (!C.APPS_SCRIPT_URL || C.APPS_SCRIPT_URL.startsWith('PASTE')) { block('<h2>Almost ready</h2><p>The recording server isn\'t connected yet. (Organizer: set APPS_SCRIPT_URL in docs/config.js.)</p>'); return; }
+  try {
+    const t = await fetch(C.SENTENCES_URL, { cache: 'no-cache' }).then(r => r.text());
+    st.sentences = parseSentences(t);
+  } catch (e) { block('<h2>Could not load sentences</h2><p>Check your internet connection and reload.</p>'); return; }
+  if (!st.sentences.length) { block('<h2>No sentences yet</h2><p>The sentence list is empty. Please check back soon.</p>'); return; }
+  try { db = await openDB(); const items = await tx('readonly', s => s.getAll()) || []; for (const it of items) if (it.key.startsWith(SPK + '/')) st.queue.set(it.key, it); } catch (e) { db = null; }
+  $('app').hidden = false;
+  try { await fetchProgress(); }
+  catch (e) { if (String(e.message).includes('link')) { block('<h2>This link isn\'t valid</h2><p>Please ask ' + (C.CONTACT_NAME || 'the organizer') + ' for a new recording link.</p>'); return; } setStatus('<span class="w">Offline — you can keep recording; takes upload when you\'re back online.</span>'); }
+  let pos = 0; try { pos = parseInt(localStorage.getItem(lsKey) || '0', 10) || 0; } catch (e) {}
+  st.idx = Math.min(pos, st.sentences.length - 1);
+  if (isDone(st.sentences[st.idx].id)) st.idx = nextUnrecorded(st.idx);
+  go(st.idx); processQueue();
+})();
+}
+</script>
+</body>
+</html>

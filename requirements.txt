@@ -1,0 +1,13 @@
+# Python 3.10–3.12 recommended. Install inside a virtual environment:
+#   python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+torch>=2.5            # includes Apple-GPU (MPS) support on Apple Silicon Macs
+transformers>=4.40,<5
+datasets[audio]>=2.19,<4
+pandas<3              # datasets 3.x can't read audiofolder metadata with pandas 3
+accelerate>=0.30
+soundfile
+scipy
+numpy
+Cython
+matplotlib
+tensorboard

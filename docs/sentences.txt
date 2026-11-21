@@ -1,0 +1,12 @@
+# Harari sentence list for the readers — one sentence per line, in Ge'ez script.
+# Lines starting with # are ignored. Blank lines are ignored.
+#
+# Optional: give a line a fixed ID with a tab:   har_0001<TAB>sentence text
+# Otherwise IDs are assigned by line order (har_0001, har_0002, ...).
+# Once readers have started, only ADD lines at the end, or use fixed IDs,
+# so existing recordings keep matching their sentence.
+#
+# Aim for 500–1,000 sentences, 5–15 words each, from real Harari writing,
+# checked by a fluent speaker. Replace these comment lines' example below:
+#
+# har_0001	(first Harari sentence here)

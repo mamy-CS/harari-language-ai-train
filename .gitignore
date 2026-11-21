@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# audio and model artifacts stay out of git
+recordings/
+data/
+checkpoints/
+outputs/
+third_party/
+configs/finetune_harari_*.json
+!configs/finetune_harari_template.json
+*.wav
