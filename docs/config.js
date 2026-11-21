@@ -2,7 +2,7 @@
 // paste its Web app URL below and commit.
 window.RECORDER_CONFIG = {
   // Google Apps Script Web app URL, ends with /exec
-  APPS_SCRIPT_URL: "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzQDb1VRI_bIJzjtoAdd-3UO4ELnCzkz3NgfKakEmI1l1-2ftI_946VqpRmXVgytQqZ/exec",
 
   // Sentence list served next to this page. One sentence per line.
   SENTENCES_URL: "sentences.txt",
