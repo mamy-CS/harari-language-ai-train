@@ -34,6 +34,8 @@ def main():
     out, skipped = [], 0
     for r in rows:
         har = " ".join((r.get(col) or "").split())
+        if not (r.get("ID") or "").startswith("har_"):
+            continue  # skips the Example row
         if not har or (r.get("Status") or "").strip().lower() not in ok_status:
             continue
         if re.search(r"\d", har):
